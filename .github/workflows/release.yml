@@ -1,0 +1,43 @@
+name: Create Release
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  deploy:
+    name: 'Create release'
+    if: github.repository_owner == 'privacyportal' && github.event.repository.name == 'privacyportal-extension'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: install web-ext globally
+        run: 'npm install --global web-ext'
+
+      - name: install dependencies
+        run: 'npm ci'
+
+      - name: Build
+        run: 'npm run build -- --mode production'
+
+      - name: Create Tag
+        id: create_tag
+        uses: butlerlogic/action-autotag@a825539276d173dbaa8d39fb45024d85d292f4f3 # 1.1.2
+        with:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          strategy: package
+          tag_prefix: 'v'
+
+      - name: Create release and upload attachments
+        if: steps.create_tag.outputs.tagcreated == 'yes'
+        run: |
+          TAGNAME="${{ steps.create_tag.outputs.tagname }}"
+          gh release create ${{ steps.create_tag.outputs.tagname }} ./web-ext-artifacts/privacy_portal-${TAGNAME#v}.zip
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

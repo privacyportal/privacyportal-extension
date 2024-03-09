@@ -1,0 +1,38 @@
+{
+  "name": "privacyportal-extension",
+  "version": "0.0.0",
+  "author": "Privacy Portal",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "postbuild": "web-ext build --source-dir ./build/",
+    "preview": "vite preview",
+    "start:firefox": "web-ext run --source-dir ./build/",
+    "start:firefox:android": "web-ext run -t firefox-android --adb-device $(adb devices | sed -n 2p | awk '{ print $1 }') --source-dir ./build/",
+    "lint": "prettier --ignore-path .gitignore --check --plugin-search-dir=. . && eslint --ignore-path .gitignore .",
+    "format": "prettier --ignore-path .gitignore --write --plugin-search-dir=. ."
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^3.0.2",
+    "@types/chrome": "^0.0.262",
+    "@types/webextension-polyfill": "^0.10.7",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-svelte": "^2.35.1",
+    "prettier": "^3.2.5",
+    "prettier-plugin-organize-imports": "^3.2.4",
+    "prettier-plugin-svelte": "^3.2.2",
+    "svelte": "^4.2.11",
+    "vite": "^5.1.4",
+    "vite-plugin-generate-file": "^0.1.1"
+  },
+  "dependencies": {
+    "jose": "^5.2.2",
+    "webextension-polyfill": "^0.10.0"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.12.1"
+  }
+}
