@@ -3,7 +3,7 @@ import { storageRead } from './lib/modules/storage';
 
 let detectedInput;
 
-const EMAIL_INPUT_SCOPES = ['input[type=email]', 'input[type=text][id=email]', 'input[type=text][name=email]', 'input[type=text][name=username]', 'input[type=text][name=login]'];
+const EMAIL_INPUT_SCOPES = ['input[type=email]', 'input[type=text][id*=email]', 'input[type=text][name*=email]', 'input[type=text][name*=username]', 'input[type=text][name*=login]'];
 const EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.join(', ');
 const INJECTABLE_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}:not([list])`).join(', ');
 const INJECTED_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}[list^=pp-]`).join(', ');
@@ -190,6 +190,7 @@ function hasActiveInput() {
 function handleNewPrivacyAddress(address) {
   if (detectedInput && address) {
     detectedInput.value = address;
+    detectedInput.dispatchEvent(new Event('paste', { bubbles: true }));
     return true;
   }
   return false;
