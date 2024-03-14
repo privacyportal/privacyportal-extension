@@ -3,10 +3,17 @@ import { storageRead } from './lib/modules/storage';
 
 let detectedInput;
 
-const EMAIL_INPUT_SCOPES = ['input[type=email]', 'input[type=text][id*=email]', 'input[type=text][name*=email]', 'input[type=text][name*=username]', 'input[type=text][name*=login]'];
+const EMAIL_INPUT_SCOPES = [
+  'input[type=email]',
+  'input[type=text][id*=email]',
+  'input[type=text][name*=email]',
+  'input[type=text][name*=username]',
+  'input[type=text][name*=login]',
+  'input[type=text][placeholder*=email]'
+];
 const EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.join(', ');
-const INJECTABLE_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}:not([list])`).join(', ');
-const INJECTED_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}[list^=pp-]`).join(', ');
+const INJECTABLE_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}:not([data-pp])`).join(', ');
+const INJECTED_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}[data-pp]`).join(', ');
 
 const isFirefoxAndroid = ((ua) => ua.indexOf('firefox') > -1 && ua.indexOf('android') > -1)(navigator.userAgent.toLowerCase());
 
@@ -56,8 +63,9 @@ async function injectDataList(inputElement) {
       };
 
       document.body.appendChild(list);
+
       // add input element attribute to only apply once
-      inputElement.setAttribute('list', datalistId);
+      inputElement.setAttribute('data-pp', '');
 
       // position the list
       positionList();
@@ -104,14 +112,29 @@ async function injectDataList(inputElement) {
       option.setAttribute('value', '******@pportal.io');
       option.textContent = 'Hide my Email';
 
-      // create datalist element
-      const datalist = document.createElement('datalist');
-      datalist.setAttribute('id', datalistId);
+      let datalist;
+
+      // check if datalist exists
+      if (inputElement.hasAttribute('list')) {
+        const detectedDataListId = inputElement.getAttribute('list');
+        datalist = document.getElementById(detectedDataListId);
+      }
+
+      if (!datalist) {
+        // create datalist element
+        datalist = document.createElement('datalist');
+        datalist.setAttribute('id', datalistId);
+
+        // add the datalist input element to the input
+        inputElement.setAttribute('list', datalistId);
+        inputElement.insertAdjacentElement('afterend', datalist);
+      }
+
+      // add option to datalist
       datalist.appendChild(option);
 
-      // add the datalist input element to the input
-      inputElement.setAttribute('list', datalistId);
-      inputElement.insertAdjacentElement('afterend', datalist);
+      // add input element attribute to only apply once
+      inputElement.setAttribute('data-pp', '');
     }
 
     // listen to datalist selection (needs update in the future when datalist supports event listeners)
@@ -141,15 +164,36 @@ function detectAndInjectDataList() {
   }
 }
 
-window.addEventListener('onload', detectAndInjectDataList);
+function injectDataListOnFocus(containerElement) {
+  if (containerElement?.addEventListener) {
+    containerElement.addEventListener(
+      'focusin',
+      inputDelegate((inputElement) => {
+        injectDataList(inputElement);
+      }),
+      true
+    );
+  }
+}
 
-document.addEventListener(
-  'focusin',
-  inputDelegate((inputElement) => {
-    injectDataList(inputElement);
-  }),
-  true
-);
+window.addEventListener('load', () => {
+  detectAndInjectDataList();
+  // inject datalist when focused on input elements inside iframes
+  [...document.querySelectorAll('iframe')].map((iframe) => {
+    try {
+      const iframeDocument = iframe?.contentDocument || iframe?.contentWindow?.document;
+      // ensure iframe is accessible
+      if (iframeDocument?.addEventListener) {
+        injectDataListOnFocus(iframeDocument);
+      }
+    } catch {
+      // do nothing
+    }
+  });
+});
+
+// inject datalist when focused on input elements in document
+injectDataListOnFocus(document);
 
 browser.storage.local.onChanged.addListener((changes) => {
   const changedItems = Object.keys(changes);
@@ -191,6 +235,7 @@ function handleNewPrivacyAddress(address) {
   if (detectedInput && address) {
     detectedInput.value = address;
     detectedInput.dispatchEvent(new Event('paste', { bubbles: true }));
+    detectedInput.dispatchEvent(new Event('change', { bubbles: true }));
     return true;
   }
   return false;

@@ -37,7 +37,7 @@ export default ({ env }) => ({
     {
       matches: ['https://*/*'],
       js: ['assets/content_script.js'],
-      run_at: 'document_start'
+      run_at: 'document_idle'
     }
   ],
   commands: {
