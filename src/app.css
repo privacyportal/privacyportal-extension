@@ -69,7 +69,7 @@
 
 body {
   width: 100vw;
-  min-width: 400px;
+  min-width: 350px;
   margin: 0;
   background-color: var(--base-color);
 }

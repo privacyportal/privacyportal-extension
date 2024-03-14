@@ -69,7 +69,11 @@ async function injectDataList(inputElement) {
 
       // position the list
       positionList();
-      window.addEventListener('resize', positionList);
+      if ('visualViewport' in window) {
+        window.visualViewport.addEventListener('resize', positionList);
+      } else {
+        window.addEventListener('resize', positionList);
+      }
 
       // handle show and hide
       inputElement.addEventListener('focusin', () => {
