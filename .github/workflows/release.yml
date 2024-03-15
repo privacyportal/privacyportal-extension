@@ -22,8 +22,11 @@ jobs:
       - name: install dependencies
         run: 'npm ci'
 
-      - name: Build
-        run: 'npm run build -- --mode production'
+      - name: Build Firefox Extension
+        run: 'TARGET=firefox npm run build -- --mode production-firefox'
+
+      - name: Build Chrome Extension
+        run: 'TARGET=chrome npm run build -- --mode production-chrome'
 
       - name: Create Tag
         id: create_tag
@@ -37,7 +40,7 @@ jobs:
         if: steps.create_tag.outputs.tagcreated == 'yes'
         run: |
           TAGNAME="${{ steps.create_tag.outputs.tagname }}"
-          gh release create ${{ steps.create_tag.outputs.tagname }} ./web-ext-artifacts/privacy_portal-${TAGNAME#v}.zip
+          gh release create ${{ steps.create_tag.outputs.tagname }} ./web-ext-artifacts/privacy_portal-firefox-${TAGNAME#v}.zip ./web-ext-artifacts/privacy_portal-chrome-${TAGNAME#v}.zip
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

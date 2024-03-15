@@ -26,4 +26,3 @@ web-ext-artifacts
 *.sln
 *.sw?
 *.pem
-.env
