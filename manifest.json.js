@@ -50,7 +50,7 @@ export default ({ env }) => ({
       description: 'Insert a new Privacy Address to the selected input field'
     }
   },
-  key: env.VITE_MANIFEST_KEY,
+  ...(env.VITE_MANIFEST_KEY && { key: env.VITE_MANIFEST_KEY }),
   ...(env.VITE_BROWSER_SPECIFIC_SETTINGS_ID && {
     browser_specific_settings: {
       gecko: {
