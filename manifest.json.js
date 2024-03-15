@@ -29,9 +29,11 @@ export default ({ env }) => ({
     default_popup: 'index.html'
   },
   background: {
+    type: 'module',
     service_worker: 'assets/worker.js',
-    scripts: ['assets/worker.js'],
-    type: 'module'
+    ...(env.VITE_SET_BACKGROUND_SCRIPTS === 'true' && {
+      scripts: ['assets/worker.js'],
+    })
   },
   content_scripts: [
     {
