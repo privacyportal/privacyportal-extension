@@ -49,14 +49,16 @@ export default ({ env }) => ({
     }
   },
   key: env.VITE_MANIFEST_KEY,
-  browser_specific_settings: {
-    gecko: {
-      id: env.VITE_AUTHOR_EMAIL,
-      strict_min_version: '120.0'
-    },
-    gecko_android: {
-      id: env.VITE_AUTHOR_EMAIL,
-      strict_min_version: '120.0'
+  ...(env.VITE_BROWSER_SPECIFIC_SETTINGS_ID && {
+    browser_specific_settings: {
+      gecko: {
+        id: env.VITE_BROWSER_SPECIFIC_SETTINGS_ID,
+        strict_min_version: '120.0'
+      },
+      gecko_android: {
+        id: env.VITE_BROWSER_SPECIFIC_SETTINGS_ID,
+        strict_min_version: '120.0'
+      }
     }
-  }
+  })
 });

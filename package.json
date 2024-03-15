@@ -1,13 +1,13 @@
 {
   "name": "privacyportal-extension",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "Privacy Portal",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "web-ext build --source-dir ./build/",
+    "postbuild": "web-ext build -o --source-dir ./build/ --filename=\"{name}-${TARGET:-dev}-{version}.zip\"",
     "preview": "vite preview",
     "start:firefox": "web-ext run --source-dir ./build/",
     "start:firefox:android": "web-ext run -t firefox-android --adb-device $(adb devices | sed -n 2p | awk '{ print $1 }') --source-dir ./build/",
