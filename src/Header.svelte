@@ -4,7 +4,7 @@
   import Button from './lib/components/common/Button.svelte';
   import Logo from './lib/components/svg/Logo.svelte';
   import { session } from './lib/stores/account';
-  import { storageClear as clearStorage } from './lib/modules/storage';
+  import { storageClear } from './lib/modules/storage';
   import { deteleApiKey } from './lib/modules/requests';
   import { APP_URL } from './lib/modules/constants';
   import { safeParseJSON } from './lib/modules/util';
@@ -32,8 +32,8 @@
   async function signOut() {
     try {
       loading = true;
+      await storageClear();
       await deteleApiKey({ api_key: $session });
-      await clearStorage();
     } finally {
       loading = false;
     }
