@@ -55,11 +55,11 @@ export default ({ env }) => ({
     browser_specific_settings: {
       gecko: {
         id: env.VITE_BROWSER_SPECIFIC_SETTINGS_ID,
-        strict_min_version: '120.0'
+        strict_min_version: '115.0'
       },
       gecko_android: {
         id: env.VITE_BROWSER_SPECIFIC_SETTINGS_ID,
-        strict_min_version: '120.0'
+        strict_min_version: '115.0'
       }
     }
   })
