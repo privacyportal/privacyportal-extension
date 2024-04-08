@@ -29,12 +29,21 @@ npm install
 ## Building
 
 ```bash
-# run build (in production mode or you can create a custom .env file)
-npm run build -- --mode production
+# run build (in dev mode, you can add .env.local file for customization)
+npm run build
+
+# build firefox extension in production mode
+TARGET=firefox npm run build -- --mode production-firefox
+
+# build chrome extension in production mode
+TARGET=chrome npm run build -- --mode production-chrome
 
 # once built you can load it unpacked in chromium based browsers or firefox
 
-# In order to test on Firefox on android (requires web-ext to be installed)
+# Test on Firefox developer edition (desktop)
+npm run start:firefox
+
+# Test on Firefox for android (requires web-ext to be installed)
 npm run start:firefox:android
 ```
 

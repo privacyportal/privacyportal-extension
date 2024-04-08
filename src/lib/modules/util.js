@@ -20,3 +20,7 @@ export function safeParseJSON(value) {
 export function isString(input) {
   return typeof input === 'string' || input instanceof String;
 }
+
+export function writeValueToClipboard(value) {
+  setTimeout(async () => await navigator.clipboard.writeText(value));
+}

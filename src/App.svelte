@@ -9,10 +9,51 @@
   import AnnouncementIcon from './lib/components/materialIcons/AnnouncementIcon.svelte';
   import { HOMEPAGE_URL } from './lib/modules/constants';
   import Button from './lib/components/common/Button.svelte';
+  import CopyIcon from './lib/components/materialIcons/CopyIcon.svelte';
+  import { writeValueToClipboard } from './lib/modules/util';
+  import { findOrCreatePrivacyAddress } from './lib/modules/requests';
 
   const ALL_URLS_ORIGINS = '<all_urls>';
 
   let hasAccessToOrigins;
+  let protocol;
+  let hostname;
+  let copied;
+  let copyTimeout;
+  let creatingAddress = false;
+
+  async function copyToClipboard(value) {
+    if (value) {
+      clearTimeout(copyTimeout);
+      writeValueToClipboard(value);
+      copied = true;
+      copyTimeout = setTimeout(() => {
+        copied = false;
+      }, 3000);
+    }
+  }
+
+  async function handleGetPrivacyAddress() {
+    try {
+      creatingAddress = true;
+      const { value } = await findOrCreatePrivacyAddress({ label: `${protocol}//${hostname}` });
+      await copyToClipboard(value);
+    } finally {
+      creatingAddress = false;
+    }
+  }
+
+  async function detectCurrentTab() {
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const url = new URL(tab.url);
+    if (url.protocol === 'https:' || url.protocol === 'http:') {
+      protocol = url.protocol;
+      hostname = url.hostname;
+    } else {
+      protocol = null;
+      hostname = null;
+    }
+  }
 
   function detectBrowserColorScheme() {
     isDarkBrowserColorScheme.set(window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -37,7 +78,7 @@
   }
 
   onMount(async () => {
-    await Promise.all([detectBrowserColorScheme(), loadSession(), hasAccessToAllOrigins(), listenToAccessToAllOriginsChanges()]);
+    await Promise.all([detectBrowserColorScheme(), loadSession(), hasAccessToAllOrigins(), listenToAccessToAllOriginsChanges(), detectCurrentTab()]);
   });
 </script>
 
@@ -56,15 +97,32 @@
     <Header />
 
     <div class="gridline" />
-    <FlexContainer column padding="0.5rem" gap="0.5rem">
+    <FlexContainer column margin="0.3rem 0 0 0" padding="0.5rem" gap="0.7rem">
       {#if $session?.key}
-        <GridContainer template_columns="18px auto" align_items="center" color="var(--text-color)" gap="0.5rem">
-          <AnnouncementIcon color="var(--icon-color)" dimension="18px" />
-          <span class="note">Type the <strong>@</strong> symbol in any email input field to generate a new Privacy Address.</span>
-        </GridContainer>
+        <FlexContainer column bgColor="var(--new-layer-color)" padding="0.5rem 0.7rem" gap="0.5rem" rounded>
+          {#if hostname}
+            <FlexContainer column gap="0.2rem" align_items="center" justify_content="center" rounded>
+              <span class="xs oneline"><strong>{hostname}</strong></span>
+            </FlexContainer>
+            <Button width="100%" on:click={handleGetPrivacyAddress} disabled={creatingAddress} padding="0px 0.5rem" margin="0px 0px 0.5rem 0px" rounded border>
+              <GridContainer height="100%" width="100%" template_columns="1fr auto" align_items="center" justify_items="flex-start" gap="0.1rem">
+                <span class="sm oneline">Get Privacy Address</span>
+                {#if copied}
+                  <span class="note">copied</span>
+                {:else}
+                  <CopyIcon dimension="16px" />
+                {/if}
+              </GridContainer>
+            </Button>
+          {/if}
+          <GridContainer template_columns="18px auto" align_items="center" color="var(--text-color)" gap="0.5rem">
+            <AnnouncementIcon color="var(--icon-color)" dimension="18px" />
+            <span class="note">{hostname ? 'Alternatively, simply type' : 'Type'} the <strong>@</strong> symbol in any email input field to generate a new Privacy Address.</span>
+          </GridContainer>
+        </FlexContainer>
       {/if}
       {#if hasAccessToOrigins === false}
-        <Button height="auto" on:click={requestAccessToAllOrigins} margin="0.5rem 0 0 0" padding="0.3rem" border rounded>
+        <Button height="auto" on:click={requestAccessToAllOrigins} padding="0.3rem" border rounded>
           <FlexContainer column gap="0.1rem">
             <h5 class="no-margin">Grant Access To All Websites</h5>
             <span class="xs no-margin">needed to detect email fields on pages</span>
