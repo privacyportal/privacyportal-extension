@@ -89,11 +89,18 @@ export async function authenticate() {
   const { access_token } = await oauthAuthenticate();
 
   // create an api key valid for 90 days
-  const api_key = await createApiKey({ label: 'firefox extension', access_token });
+  const browserLabel = await getBrowserLabel();
+  const api_key = await createApiKey({ label: `${browserLabel} extension`, access_token });
 
   const api_key_str = JSON.stringify(api_key);
 
   // store the api key for future retrieval
   await browser.storage.local.set({ api_key: api_key_str });
   return api_key_str;
+}
+
+async function getBrowserLabel() {
+  const { os } = await browser.runtime.getPlatformInfo()
+  const { name } = await browser.runtime.getBrowserInfo();
+  return `${name} ${os}`;
 }
