@@ -32,7 +32,7 @@ export default ({ env }) => ({
     type: 'module',
     service_worker: 'assets/worker.js',
     ...(env.VITE_SET_BACKGROUND_SCRIPTS === 'true' && {
-      scripts: ['assets/worker.js'],
+      scripts: ['assets/worker.js']
     })
   },
   content_scripts: [
