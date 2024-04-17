@@ -100,7 +100,7 @@ export async function authenticate() {
 }
 
 async function getBrowserLabel() {
-  const { os } = await browser.runtime.getPlatformInfo()
+  const { os } = await browser.runtime.getPlatformInfo();
   const { name } = await browser.runtime.getBrowserInfo();
   return `${name} ${os}`;
 }

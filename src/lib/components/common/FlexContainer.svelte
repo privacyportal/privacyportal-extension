@@ -26,6 +26,7 @@
   export let nomobile = undefined;
   export let onlymobile = undefined;
   export let alwaysDisplay = undefined;
+  export let relative = undefined;
 
   let paddingMobile = padding
     .split(' ')
@@ -55,6 +56,7 @@
   class:autooverflow
   class:nomobile
   class:onlymobile
+  class:relative
   class:text-centered={textCentered}
   class:main-list={mainList}
   class:list-item={listItem}
@@ -84,6 +86,10 @@
     max-width: var(--width);
     color: var(--color);
     background-color: var(--bg-color);
+  }
+
+  .relative {
+    position: relative;
   }
 
   .nooverflow {
