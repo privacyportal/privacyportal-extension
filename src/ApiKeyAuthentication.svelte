@@ -40,9 +40,9 @@
   }
 </script>
 
-<FlexContainer column gap="0.5rem" color="inherit">
+<FlexContainer column padding="0.5rem" gap="0.5rem" color="inherit">
   <Form on:submit={authenticateWithApiKeys}>
-    <FlexContainer column gap="0.25rem" color="inherit">
+    <FlexContainer column gap="0.5rem" color="inherit">
       <Input type="text" name="key" placeholder="API Key" autocomplete="off" bind:value={key} disabled={submitting} />
       <Input type="password" name="secret" placeholder="API Secret" autocomplete="off" bind:value={secret} disabled={submitting} />
       <Button type="submit" disabled={submitting} primary rounded>Sign In</Button>

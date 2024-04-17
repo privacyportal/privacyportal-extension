@@ -12,6 +12,7 @@
   import CopyIcon from './lib/components/materialIcons/CopyIcon.svelte';
   import { writeValueToClipboard } from './lib/modules/util';
   import { findOrCreatePrivacyAddress } from './lib/modules/requests';
+  import Footer from './Footer.svelte';
 
   const ALL_URLS_ORIGINS = '<all_urls>';
 
@@ -97,14 +98,15 @@
     <Header />
 
     <div class="gridline" />
-    <FlexContainer column margin="0.3rem 0 0 0" padding="0.5rem" gap="0.7rem">
+
+    <FlexContainer column padding="0.5rem" gap="0.5rem">
       {#if $session?.key}
-        <FlexContainer column bgColor="var(--new-layer-color)" padding="0.5rem 0.7rem" gap="0.5rem" rounded>
+        <FlexContainer column bgColor="var(--new-layer-color)" padding="0.5rem" gap="0.5rem" rounded>
           {#if hostname}
             <FlexContainer column gap="0.2rem" align_items="center" justify_content="center" rounded>
               <span class="xs oneline"><strong>{hostname}</strong></span>
             </FlexContainer>
-            <Button width="100%" on:click={handleGetPrivacyAddress} disabled={creatingAddress} padding="0px 0.5rem" margin="0px 0px 0.5rem 0px" rounded border>
+            <Button width="100%" on:click={handleGetPrivacyAddress} disabled={creatingAddress} padding="0px 0.5rem" margin="0px 0px 0.3rem 0px" rounded border>
               <GridContainer height="100%" width="100%" template_columns="1fr auto" align_items="center" justify_items="flex-start" gap="0.1rem">
                 <span class="sm oneline">Get Privacy Address</span>
                 {#if copied}
@@ -121,6 +123,7 @@
           </GridContainer>
         </FlexContainer>
       {/if}
+
       {#if hasAccessToOrigins === false}
         <Button height="auto" on:click={requestAccessToAllOrigins} padding="0.3rem" border rounded>
           <FlexContainer column gap="0.1rem">
@@ -129,28 +132,8 @@
           </FlexContainer>
         </Button>
       {/if}
-      <GridContainer align_items="center" template_columns="1fr auto" color="var(--text-color)" gap="0.5rem">
-        <FlexContainer align_items="stretch" gap="0.5rem">
-          <a href={HOMEPAGE_URL} target="_blank">
-            <span class="xxs no-margin">Website</span>
-          </a>
-          <a href={`${HOMEPAGE_URL}/support`} target="_blank">
-            <span class="xxs no-margin">Support</span>
-          </a>
-          <a href={`${HOMEPAGE_URL}/privacy`} target="_blank">
-            <span class="xxs no-margin">Privacy</span>
-          </a>
-        </FlexContainer>
-        <FlexContainer align_items="stretch" justify_content="flex-end">
-          <span class="xxs no-margin flex-end">version {browser.runtime.getManifest().version}</span>
-        </FlexContainer>
-      </GridContainer>
+
+      <Footer />
     </FlexContainer>
   </FlexContainer>
 </div>
-
-<style>
-  a {
-    color: inherit;
-  }
-</style>
