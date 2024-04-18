@@ -45,7 +45,7 @@
     <FlexContainer column gap="0.5rem" color="inherit">
       <Input type="text" name="key" placeholder="API Key" autocomplete="off" bind:value={key} disabled={submitting} />
       <Input type="password" name="secret" placeholder="API Secret" autocomplete="off" bind:value={secret} disabled={submitting} />
-      <Button type="submit" disabled={submitting} primary rounded>Sign In</Button>
+      <Button type="submit" disabled={submitting} primary rounded><span class="sm">Sign In</span></Button>
     </FlexContainer>
   </Form>
   <GridContainer template_columns="18px auto" align_items="center" color="var(--text-color)" gap="0.5rem">

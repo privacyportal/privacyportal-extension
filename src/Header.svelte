@@ -34,8 +34,10 @@
   async function signOut() {
     try {
       loading = true;
+      // copy api key
+      const api_key = $session;
       await storageClear();
-      await deteleApiKey({ api_key: $session });
+      await deteleApiKey({ api_key });
     } finally {
       loading = false;
     }
@@ -58,18 +60,17 @@
 
     <div class="flexend">
       {#if $session?.key}
-        <Button height="auto" on:click={signOut} padding="0.3rem 0.5rem" disabled={loading} primary rounded><small>Sign Out</small></Button>
+        <Button height="auto" on:click={signOut} padding="0.3rem 0.5rem" disabled={loading} primary rounded><span class="sm">Sign Out</span></Button>
       {:else if !showSignInWithApiKey}
         <FlexContainer column align_items="center" relative>
-          <Button height="auto" on:click={signIn} padding="0.3rem 0.5rem" disabled={loading} primary rounded><small>Sign In</small></Button>
+          <Button height="auto" on:click={signIn} padding="0.3rem 0.7rem" disabled={loading} primary rounded><span class="sm">Sign In</span></Button>
           {#if !!browser?.identity?.launchWebAuthFlow}
             <a
               on:click|preventDefault={() => {
                 showSignInWithApiKey = true;
               }}
               href="/#"
-              class="text-color"
-              style="position: absolute; top: calc(100% - 0.3rem);"><span class="xs oneline">use api key</span></a
+              class="text-color api-key-link"><span class="xs oneline">use api key</span></a
             >
           {/if}
         </FlexContainer>
@@ -99,5 +100,15 @@
 <style>
   .flexend {
     justify-self: flex-end;
+  }
+
+  a.api-key-link {
+    position: absolute;
+    top: 100%;
+    align-items: flex-start;
+    padding: 0.15rem 0px 0px 0px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 </style>
