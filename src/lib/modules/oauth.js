@@ -6,6 +6,10 @@ import { CustomError, DEFAULT_ERROR_ACTION } from './error';
 import { base64ToBase64Url, bufferToBase64, isString } from './util';
 
 const AUTH_ERROR_MESSAGE = ['Authentication failed.', DEFAULT_ERROR_ACTION].join(' ');
+const UA_BRANDS = {
+  'Microsoft Edge': 'edge',
+  'Google Chrome': 'chrome'
+}
 
 async function digestAccessToken(access_token) {
   const buffer = await digestMessage(access_token, { algorithm: 'SHA-256' });
@@ -99,8 +103,35 @@ export async function authenticate() {
   return api_key_str;
 }
 
+async function getBrowserName() {
+  if (browser.runtime?.getBrowserInfo) {
+    const { name } = await browser.runtime.getBrowserInfo();
+    return name;
+  }
+
+  // handle Chromium based browsers
+  if (browser.runtime.getURL('').startsWith('chrome-extension://')) {
+    // this property is experimental
+    const detectedBrand = (navigator?.userAgentData?.brands || []).find(({ brand }) => (brand in UA_BRANDS));
+    if (detectedBrand) {
+      return UA_BRANDS[detectedBrand.brand];
+    }
+
+    // fallback to chromium
+    return 'chromium';
+  }
+
+  return 'browser';
+}
+
 async function getBrowserLabel() {
-  const { os } = await browser.runtime.getPlatformInfo();
-  const { name } = await browser.runtime.getBrowserInfo();
-  return `${name} ${os}`;
+  let label = 'browser';
+  try {
+    const { os } = await browser.runtime.getPlatformInfo();
+    const name = await getBrowserName();
+    label = `${os} ${name}`.toLowerCase();
+  } catch (err) {
+    console.error(err);
+  }
+  return label;
 }
