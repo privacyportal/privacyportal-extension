@@ -6,6 +6,10 @@ export function base64ToBase64Url(input) {
   return input.replace(/\//g, '_').replace(/\+/g, '-').replace(/=+$/, '');
 }
 
+export function bufferToBase64Url(buffer) {
+  return base64ToBase64Url(bufferToBase64(buffer));
+}
+
 export function safeParseJSON(value) {
   let result = null;
   if (!value) return result;
