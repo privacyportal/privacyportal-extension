@@ -1,9 +1,9 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import browser from 'webextension-polyfill';
-import { API_URL, AUTHORIZATION_URL, JWKS_URL, OAUTH_CLIENT_ID } from './constants';
+import { API_URL, AUTHORIZATION_URL, TOKEN_URL, JWKS_URL, OAUTH_CLIENT_ID } from './constants';
 import { crypto, digestMessage } from './crypto';
 import { CustomError, DEFAULT_ERROR_ACTION } from './error';
-import { base64ToBase64Url, bufferToBase64, isString } from './util';
+import { base64ToBase64Url, bufferToBase64, bufferToBase64Url, isString } from './util';
 
 const AUTH_ERROR_MESSAGE = ['Authentication failed.', DEFAULT_ERROR_ACTION].join(' ');
 const UA_BRANDS = {
@@ -35,13 +35,50 @@ async function validateTokens({ id_token, access_token }) {
   return { id_token, access_token };
 }
 
-function createAuthorizationURL() {
+async function exchangeCodeForToken(code, pkceCodeVerifier) {
+  try {
+    if (!code) throw new Error('code missing.');
+
+    const params = new URLSearchParams();
+    params.set('client_id', OAUTH_CLIENT_ID);
+    params.set('grant_type', 'authorization_code');
+    params.set('code', code);
+    params.set('redirect_uri', browser.identity.getRedirectURL());
+    params.set('code_verifier', pkceCodeVerifier);
+
+    const reponse = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params
+    })
+    return reponse.json();
+  } catch (err) {
+    throw new CustomError({ message: AUTH_ERROR_MESSAGE, notification_id: 'authentication' });
+  }
+}
+
+function generatePKCECodeVerifier(length = 32) {
+  const array = new Uint8Array(length);
+  window.crypto.getRandomValues(array);
+  return bufferToBase64Url(array);
+}
+
+async function createPKCECodeChallenge(codeVerifier) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(codeVerifier);
+  const digest = await window.crypto.subtle.digest('SHA-256', data);
+  return bufferToBase64Url(digest);
+}
+
+function createAuthorizationURL(pkceCodeChallenge) {
   const authParams = new URLSearchParams();
   authParams.set('client_id', OAUTH_CLIENT_ID);
   authParams.set('scope', 'openid w:api_keys');
-  authParams.set('response_type', 'id_token token');
+  authParams.set('response_type', 'code');
   authParams.set('nonce', crypto.randomUUID().substring(4, 18));
   authParams.set('redirect_uri', browser.identity.getRedirectURL());
+  authParams.set('code_challenge', pkceCodeChallenge);
+  authParams.set('code_challenge_method', 'S256');
 
   const authUrl = new URL(AUTHORIZATION_URL);
   authUrl.search = authParams.toString();
@@ -50,16 +87,22 @@ function createAuthorizationURL() {
 }
 
 export async function oauthAuthenticate() {
+  // prepare PKCE code_verifier and code_challenge
+  const codeVerifier = generatePKCECodeVerifier(length = 32);
+  const codeChallenge = await createPKCECodeChallenge(codeVerifier)
+
   // start oauth authentication
   const response = await browser.identity.launchWebAuthFlow({
-    url: createAuthorizationURL(),
+    url: createAuthorizationURL(codeChallenge),
     interactive: true
   });
 
-  // parse resonse
+  // parse response
   const searchParams = new URL(response).searchParams;
-  const id_token = searchParams.get('id_token');
-  const access_token = searchParams.get('access_token');
+  const code = searchParams.get('code');
+
+  // exchange code for tokens
+  const { id_token, access_token } = await exchangeCodeForToken(code, codeVerifier);
 
   // throws error if invalid
   await validateTokens({ id_token, access_token }).catch((e) => {
