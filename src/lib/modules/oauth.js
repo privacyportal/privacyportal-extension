@@ -88,7 +88,7 @@ function createAuthorizationURL(pkceCodeChallenge) {
 
 export async function oauthAuthenticate() {
   // prepare PKCE code_verifier and code_challenge
-  const codeVerifier = generatePKCECodeVerifier(length = 32);
+  const codeVerifier = generatePKCECodeVerifier();
   const codeChallenge = await createPKCECodeChallenge(codeVerifier)
 
   // start oauth authentication
