@@ -59,14 +59,14 @@ async function exchangeCodeForToken(code, pkceCodeVerifier) {
 
 function generatePKCECodeVerifier(length = 32) {
   const array = new Uint8Array(length);
-  window.crypto.getRandomValues(array);
+  crypto.getRandomValues(array);
   return bufferToBase64Url(array);
 }
 
 async function createPKCECodeChallenge(codeVerifier) {
   const encoder = new TextEncoder();
   const data = encoder.encode(codeVerifier);
-  const digest = await window.crypto.subtle.digest('SHA-256', data);
+  const digest = await crypto.subtle.digest('SHA-256', data);
   return bufferToBase64Url(digest);
 }
 
