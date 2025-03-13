@@ -26,6 +26,10 @@ async function isLoggedIn() {
   return !!(await storageRead('api_key'));
 }
 
+function isElementDisplayed(element) {
+  return element.offsetWidth !== 0 || element.offsetHeight !== 0;
+}
+
 async function injectDataList(inputElement) {
   // only inject datalist if the user is logged in
   const shouldInject = await isLoggedIn();
@@ -162,9 +166,11 @@ function removeInjectedDataLists() {
 
 function detectAndInjectDataList() {
   for (const inputElement of document.querySelectorAll(INJECTABLE_EMAIL_INPUT_SCOPE)) {
-    injectDataList(inputElement).catch((e) => {
-      console.error(e);
-    });
+    if (isElementDisplayed(inputElement)) {
+      injectDataList(inputElement).catch((e) => {
+        console.error(e);
+      });
+    }
   }
 }
 
