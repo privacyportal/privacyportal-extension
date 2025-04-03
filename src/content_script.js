@@ -4,12 +4,13 @@ import { storageRead } from './lib/modules/storage';
 let detectedInput;
 
 const EMAIL_INPUT_SCOPES = [
-  'input[type=email]',
-  'input[type=text][id*=email]',
-  'input[type=text][name*=email]',
-  'input[type=text][name*=username]',
-  'input[type=text][name*=login]',
-  'input[type=text][placeholder*=email]'
+  `input[type=email]`,
+  `input[type=text][id*="email" i]`,
+  `input[type=text][name*="email" i]`,
+  `input[type=text][name*="username" i]`,
+  `input[type=text][name*="login" i]`,
+  `input[type=text][placeholder*="email" i]`,
+  `input[type=text][placeholder*="e-mail" i]`,
 ];
 const EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.join(', ');
 const INJECTABLE_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}:not([data-pp])`).join(', ');
