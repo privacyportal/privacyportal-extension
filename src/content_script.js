@@ -10,7 +10,7 @@ const EMAIL_INPUT_SCOPES = [
   `input[type=text][name*="username" i]`,
   `input[type=text][name*="login" i]`,
   `input[type=text][placeholder*="email" i]`,
-  `input[type=text][placeholder*="e-mail" i]`,
+  `input[type=text][placeholder*="e-mail" i]`
 ];
 const EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.join(', ');
 const INJECTABLE_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}:not([data-pp])`).join(', ');
@@ -19,9 +19,13 @@ const INJECTED_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}[d
 const isFirefoxAndroid = ((ua) => ua.indexOf('firefox') > -1 && ua.indexOf('android') > -1)(navigator.userAgent.toLowerCase());
 
 // detect mouse events
-const delegate = (selector) => (cb) => (e) => e.target.matches && e.target.matches(selector) && cb(e.target);
+const delegate = (selector, opts) => (cb) => (e) => {
+  const target = opts?.shadow ? e?.composedPath()?.[0] : e.target;
+  return target?.matches(selector) && cb(target);
+};
 
 const inputDelegate = delegate(INJECTABLE_EMAIL_INPUT_SCOPE);
+const shadowInputDelegate = delegate(INJECTABLE_EMAIL_INPUT_SCOPE, { shadow: true });
 
 async function isLoggedIn() {
   return !!(await storageRead('api_key'));
@@ -187,8 +191,19 @@ function injectDataListOnFocus(containerElement) {
   }
 }
 
+function injectDataListOnShadowDom() {
+  document.addEventListener(
+    'click',
+    shadowInputDelegate((inputElement) => {
+      injectDataList(inputElement);
+    }),
+    true
+  );
+}
+
 window.addEventListener('load', () => {
   detectAndInjectDataList();
+  injectDataListOnShadowDom();
   // inject datalist when focused on input elements inside iframes
   [...document.querySelectorAll('iframe')].map((iframe) => {
     try {
