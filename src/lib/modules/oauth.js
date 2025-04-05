@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import browser from 'webextension-polyfill';
-import { API_URL, AUTHORIZATION_URL, TOKEN_URL, JWKS_URL, OAUTH_CLIENT_ID } from './constants';
+import { API_URL, AUTHORIZATION_URL, JWKS_URL, OAUTH_CLIENT_ID, TOKEN_URL } from './constants';
 import { crypto, digestMessage } from './crypto';
 import { CustomError, DEFAULT_ERROR_ACTION } from './error';
 import { base64ToBase64Url, bufferToBase64, bufferToBase64Url, isString } from './util';
@@ -9,7 +9,7 @@ const AUTH_ERROR_MESSAGE = ['Authentication failed.', DEFAULT_ERROR_ACTION].join
 const UA_BRANDS = {
   'Microsoft Edge': 'edge',
   'Google Chrome': 'chrome'
-}
+};
 
 async function digestAccessToken(access_token) {
   const buffer = await digestMessage(access_token, { algorithm: 'SHA-256' });
@@ -50,7 +50,7 @@ async function exchangeCodeForToken(code, pkceCodeVerifier) {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params
-    })
+    });
     return reponse.json();
   } catch (err) {
     throw new CustomError({ message: AUTH_ERROR_MESSAGE, notification_id: 'authentication' });
@@ -89,7 +89,7 @@ function createAuthorizationURL(pkceCodeChallenge) {
 export async function oauthAuthenticate() {
   // prepare PKCE code_verifier and code_challenge
   const codeVerifier = generatePKCECodeVerifier();
-  const codeChallenge = await createPKCECodeChallenge(codeVerifier)
+  const codeChallenge = await createPKCECodeChallenge(codeVerifier);
 
   // start oauth authentication
   const response = await browser.identity.launchWebAuthFlow({
@@ -155,7 +155,7 @@ async function getBrowserName() {
   // handle Chromium based browsers
   if (browser.runtime.getURL('').startsWith('chrome-extension://')) {
     // this property is experimental
-    const detectedBrand = (navigator?.userAgentData?.brands || []).find(({ brand }) => (brand in UA_BRANDS));
+    const detectedBrand = (navigator?.userAgentData?.brands || []).find(({ brand }) => brand in UA_BRANDS);
     if (detectedBrand) {
       return UA_BRANDS[detectedBrand.brand];
     }
