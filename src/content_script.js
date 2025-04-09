@@ -1,7 +1,13 @@
 import browser from 'webextension-polyfill';
+import hmeLogo from './lib/modules/assets/hmeLogo';
+import { attachShadowDomToFirstCompatibleAncestor, bindShadowElementPosition, bindVisibilityToInputFocus, fmtPixelDimension } from './lib/modules/domUtils';
 import { storageRead } from './lib/modules/storage';
+import { ANDROID_UA_STR, FIREFOX_UA_STR, uaIncludesAll } from './lib/modules/uaUtils';
 
 let detectedInput;
+
+const DATALIST_SUGGESTION = '*****@pportal.io';
+const HME_LABEL = 'Hide my Email';
 
 const EMAIL_INPUT_SCOPES = [
   `input[type=email]`,
@@ -16,7 +22,8 @@ const EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.join(', ');
 const INJECTABLE_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}:not([data-pp])`).join(', ');
 const INJECTED_EMAIL_INPUT_SCOPE = EMAIL_INPUT_SCOPES.map((scope) => `${scope}[data-pp]`).join(', ');
 
-const isFirefoxAndroid = ((ua) => ua.indexOf('firefox') > -1 && ua.indexOf('android') > -1)(navigator.userAgent.toLowerCase());
+const isFirefoxAndroid = uaIncludesAll(navigator, [FIREFOX_UA_STR, ANDROID_UA_STR]);
+const isFirefox = uaIncludesAll(navigator, [FIREFOX_UA_STR]);
 
 // detect mouse events
 const delegate = (selector, opts) => (cb) => (e) => {
@@ -35,6 +42,15 @@ function isElementDisplayed(element) {
   return element.offsetWidth !== 0 || element.offsetHeight !== 0;
 }
 
+/**
+ * @param {HTMLInputElement} inputElement
+ */
+async function handleHME(inputElement) {
+  inputElement.value = '';
+  detectedInput = inputElement;
+  await browser.runtime.sendMessage(undefined, { type: 'privacy-address-request' });
+}
+
 async function injectDataList(inputElement) {
   // only inject datalist if the user is logged in
   const shouldInject = await isLoggedIn();
@@ -43,8 +59,10 @@ async function injectDataList(inputElement) {
     const datalistId = `pp-${window.crypto.randomUUID().substring(0, 8)}`;
 
     if (isFirefoxAndroid) {
+      const { ancestor, shadowRoot } = await attachShadowDomToFirstCompatibleAncestor(inputElement);
+
       const option = document.createElement('li');
-      option.innerText = 'Hide my Email';
+      option.innerText = HME_LABEL;
       option.style.padding = '3px';
       option.style.cursor = 'pointer';
 
@@ -55,82 +73,66 @@ async function injectDataList(inputElement) {
       list.style.maxHeight = '300px';
       list.style.overflowY = 'auto';
       list.style.listStyle = 'none';
-      list.style.background = 'white';
+      list.style.backgroundColor = 'Canvas';
+      list.style.color = 'CanvasText';
+      list.style.colorScheme = 'light dark';
       list.style.boxShadow = '0 2px 2px #999';
       list.style.fontSize = 'small';
       list.style.zIndex = '1000';
-      list.style.padding = '0px';
-      list.style.margin = '0px';
+      list.style.padding = list.style.margin = '0px';
 
       list.appendChild(option);
 
-      const positionList = function () {
-        const { left, width, bottom } = inputElement.getBoundingClientRect();
-        list.style.top = bottom + 'px';
-        list.style.left = left + 'px';
-        list.style.width = width + 'px';
-      };
+      const style = document.createElement('style');
+      style.textContent = `li:hover{background-color:ButtonFace;color:ButtonText;}`;
 
-      document.body.appendChild(list);
+      // Add list to shadow DOM
+      shadowRoot.append(style, list);
+
+      bindShadowElementPosition(inputElement, ancestor, () => {
+        // update button position
+        const inputRect = inputElement.getBoundingClientRect();
+        const parentRect = ancestor.getBoundingClientRect();
+        list.style.width = fmtPixelDimension(inputRect.width);
+        list.style.top = fmtPixelDimension(inputRect.bottom - parentRect.top, {
+          toFixed: 2
+        });
+        list.style.left = fmtPixelDimension(inputRect.left - parentRect.left, {
+          toFixed: 2
+        });
+      });
 
       // add input element attribute to only apply once
       inputElement.setAttribute('data-pp', '');
 
-      // position the list
-      positionList();
-      if ('visualViewport' in window) {
-        window.visualViewport.addEventListener('resize', positionList);
-      } else {
-        window.addEventListener('resize', positionList);
-      }
-
-      // handle show and hide
-      inputElement.addEventListener('focusin', () => {
-        list.style.visibility = 'visible';
-      });
-      inputElement.addEventListener('focusout', () => {
-        // delay to ensure click event is triggered
-        setTimeout(() => {
-          list.style.visibility = 'hidden';
-        }, 0);
-      });
-
-      // handle focusout using click event to ensure lists have precedence
-      document.addEventListener(
-        'click',
-        (e) => {
-          if (list.style.visibility === 'visible') {
-            const rect = inputElement.getBoundingClientRect();
-            if (e.clientY < rect.top || e.clientY > rect.bottom || e.clientX < rect.left || e.clientX > rect.right) {
-              list.style.visibility = 'hidden';
-            }
-          }
-        },
-        true
-      );
+      option.onmousedown = (e) => {
+        // keep the focus on the input field
+        e.preventDefault();
+      };
 
       // handle selection
-      option.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        inputElement.value = '';
-        detectedInput = inputElement;
-        list.style.visibility = 'hidden';
-        browser.runtime.sendMessage(undefined, { type: 'privacy-address-request' });
-      });
+      option.onclick = async () => {
+        list.style.opacity = '0';
+        await handleHME(inputElement).catch(console.error);
+      };
+
+      // handle show and hide
+      bindVisibilityToInputFocus(inputElement, list);
     } else {
       // create datalist option
       const option = document.createElement('option');
       option.setAttribute('id', 'new-privacy-addr');
-      option.setAttribute('value', '******@pportal.io');
-      option.textContent = 'Hide my Email';
+      option.setAttribute('value', DATALIST_SUGGESTION);
+      option.textContent = HME_LABEL;
 
       let datalist;
 
       // check if datalist exists
       if (inputElement.hasAttribute('list')) {
         const detectedDataListId = inputElement.getAttribute('list');
-        datalist = document.getElementById(detectedDataListId);
+        if (detectedDataListId) {
+          datalist = document.getElementById(detectedDataListId);
+        }
       }
 
       if (!datalist) {
@@ -148,14 +150,69 @@ async function injectDataList(inputElement) {
 
       // add input element attribute to only apply once
       inputElement.setAttribute('data-pp', '');
+
+      // add logo btn to inputs on firefox
+      if (isFirefox) {
+        const { ancestor, shadowRoot } = await attachShadowDomToFirstCompatibleAncestor(inputElement);
+
+        // Create button element
+        const btn = document.createElement('button');
+        btn.title = HME_LABEL;
+
+        Object.assign(btn.style, {
+          position: 'absolute',
+          border: 'none',
+          borderRadius: '15px',
+          cursor: 'pointer',
+          padding: '0',
+          margin: '0',
+          zIndex: '1000',
+          pointerEvents: 'auto',
+          right: '8px',
+          opacity: '0',
+          transition: 'opacity 0.1s ease'
+        });
+
+        btn.appendChild(hmeLogo());
+
+        // Add elements to shadow DOM
+        shadowRoot.append(btn);
+
+        bindShadowElementPosition(inputElement, ancestor, () => {
+          // update button position
+          const rect = inputElement.getBoundingClientRect();
+          const parentRect = ancestor.getBoundingClientRect();
+          const paddingRight = parseFloat(window.getComputedStyle(inputElement).getPropertyValue('padding-right')) || 0;
+          btn.style.height = btn.style.width = fmtPixelDimension(rect.height * 0.7, { toFixed: 2 });
+          btn.style.top = fmtPixelDimension(rect.top - parentRect.top + rect.height * 0.15, { toFixed: 2 });
+          btn.style.right = fmtPixelDimension(parentRect.right - rect.right + Math.max(paddingRight, rect.height * 0.15), { toFixed: 2 });
+        });
+
+        // handle show and hide
+        bindVisibilityToInputFocus(inputElement, btn);
+
+        btn.onmousedown = (e) => {
+          // keep the focus on the input field
+          e.preventDefault();
+        };
+
+        btn.onclick = async () => {
+          try {
+            btn.disabled = true;
+            await handleHME(inputElement);
+          } catch (err) {
+            console.error(err);
+          } finally {
+            btn.disabled = false;
+          }
+        };
+      }
     }
 
     // listen to datalist selection (needs update in the future when datalist supports event listeners)
-    inputElement.addEventListener('input', () => {
-      if (inputElement.value === '@' || inputElement.value === '******@pportal.io') {
-        inputElement.value = '';
-        detectedInput = inputElement;
-        browser.runtime.sendMessage(undefined, { type: 'privacy-address-request' });
+    inputElement.addEventListener('input', async () => {
+      if (inputElement.value === '@' || inputElement.value === DATALIST_SUGGESTION) {
+        await handleHME(inputElement).catch(console.error);
       }
     });
   }
@@ -240,7 +297,7 @@ browser.storage.local.onChanged.addListener((changes) => {
 
 function refocusOnInput() {
   const { activeElement } = document;
-  if (activeElement.matches && activeElement.matches(EMAIL_INPUT_SCOPE)) {
+  if (activeElement?.matches(EMAIL_INPUT_SCOPE)) {
     // @ts-ignore
     activeElement.blur();
     // @ts-ignore
@@ -250,7 +307,7 @@ function refocusOnInput() {
 
 function hasActiveInput() {
   const { activeElement } = document;
-  if (activeElement.matches && activeElement.matches(EMAIL_INPUT_SCOPE)) {
+  if (activeElement?.matches(EMAIL_INPUT_SCOPE)) {
     detectedInput = activeElement;
     return true;
   }
