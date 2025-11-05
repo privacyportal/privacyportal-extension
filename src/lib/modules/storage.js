@@ -10,5 +10,16 @@ export async function storageRead(key) {
 }
 
 export async function storageClear() {
-  return await browser.storage.local.clear();
+  await browser.storage.local.clear();
+  await browser.storage.session.clear();
+}
+
+export async function sessionWrite(key, value) {
+  return await browser.storage.session.set({ [key]: JSON.stringify(value) });
+}
+
+export async function sessionRead(key) {
+  const value = (await browser.storage.session.get([key]))?.[key];
+  if (value) return JSON.parse(value);
+  return null;
 }

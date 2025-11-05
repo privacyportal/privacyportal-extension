@@ -4,7 +4,7 @@
   import Button from './lib/components/common/Button.svelte';
   import Logo from './lib/components/svg/Logo.svelte';
   import BackIcon from './lib/components/materialIcons/BackIcon.svelte';
-  import { session } from './lib/stores/account';
+  import { cleanupCryptoTasks, cryptoTasks, clearE2EEData, e2eeMasterKey, e2eePwdMkey, e2eeServiceKeys, loadingE2EEMasterKey, session } from './lib/stores/account';
   import { storageClear } from './lib/modules/storage';
   import { deteleApiKey } from './lib/modules/requests';
   import { APP_URL } from './lib/modules/constants';
@@ -12,10 +12,42 @@
   import FlexContainer from './lib/components/common/FlexContainer.svelte';
   import Modal from './lib/components/common/Modal.svelte';
   import ApiKeyAuthentication from './ApiKeyAuthentication.svelte';
+  import Input from './lib/components/common/Input.svelte';
+  import Form from './lib/components/common/Form.svelte';
+  import { deriveWrappingKey, loadMasterKey, loadServiceKeys, storeMasterKey, unwrapMasterKeyWithPassword } from './lib/modules/e2ee/e2eeUtils';
+  import { displayError } from './lib/modules/error';
+  import { onDestroy } from 'svelte';
+  import CryptoTasks from './lib/modules/e2ee/CryptoTasks';
 
   let loading = false;
   let signInModalOpened = false;
   let showSignInWithApiKey = false;
+  let password;
+
+  $: if ($session?.e2ee) {
+    loadServiceKeys('mrelay');
+  }
+
+  $: if ($session?.e2ee && $e2eeServiceKeys?.acc) {
+    loadMasterKey();
+  }
+
+  $: if ($session?.e2ee && $e2eeServiceKeys && $e2eeMasterKey) {
+    deriveWrappingKey($e2eeServiceKeys, $e2eeMasterKey).then((wrappingKey) => {
+      // initialize crypto tasks for background tasks
+      cryptoTasks.set(
+        new CryptoTasks({
+          masterKey: $e2eeMasterKey,
+          wrappingKey,
+          serviceKeys: $e2eeServiceKeys
+        })
+      );
+    });
+  }
+
+  onDestroy(() => {
+    cleanupCryptoTasks();
+  });
 
   async function signIn() {
     try {
@@ -37,7 +69,23 @@
       // copy api key
       const api_key = $session;
       await storageClear();
+      clearE2EEData();
       await deteleApiKey({ api_key });
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleE2EEPassword() {
+    try {
+      loading = true;
+      const fullPwd = `${$session?.user_id || ''}.${password}`;
+      const masterKey = await unwrapMasterKeyWithPassword($e2eePwdMkey, fullPwd);
+      e2eeMasterKey.set(masterKey);
+      storeMasterKey(masterKey);
+    } catch (err) {
+      console.error(err);
+      displayError(err);
     } finally {
       loading = false;
     }
@@ -94,6 +142,21 @@
       >
       <ApiKeyAuthentication onSuccess={() => (showSignInWithApiKey = false)} />
     </FlexContainer>
+  {/if}
+
+  {#if $session?.e2ee && !$e2eeMasterKey}
+    {#if $loadingE2EEMasterKey || !$e2eePwdMkey}
+      <FlexContainer padding="0px 0.5rem" color="inherit">
+        <span class="sm">Loading...</span>
+      </FlexContainer>
+    {:else}
+      <Form on:submit={handleE2EEPassword}>
+        <FlexContainer column padding="0px 0.5rem" gap="0.35rem" color="inherit">
+          <Input type="password" name="pwd" placeholder="E2EE Password" autocomplete="off" required bind:value={password} disabled={loading} />
+          <Button type="submit" disabled={loading} primary rounded>Unlock Account</Button>
+        </FlexContainer>
+      </Form>
+    {/if}
   {/if}
 </FlexContainer>
 

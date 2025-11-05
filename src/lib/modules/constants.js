@@ -7,3 +7,6 @@ export const {
   VITE_JWKS_URL: JWKS_URL,
   VITE_OAUTH_CLIENT_ID: OAUTH_CLIENT_ID
 } = import.meta.env;
+
+export const STORAGE_E2EE_MKEY = 'x-pp-mkey';
+export const STORAGE_E2EE_SERVICE_KEYS = 'x-pp-service-keys';

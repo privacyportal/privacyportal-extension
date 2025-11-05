@@ -1,3 +1,4 @@
+import { clearE2EEData } from '../stores/account.js';
 import { API_URL } from './constants.js';
 import { CustomError, displayError } from './error.js';
 import signApiRequest from './signApiRequest.js';
@@ -74,6 +75,7 @@ export default async function sendRequest({ api_key = undefined, ...params }) {
     if (res.status === 401) {
       // sign out
       await storageClear();
+      clearE2EEData();
     }
 
     displayError(error);

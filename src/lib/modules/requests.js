@@ -17,12 +17,35 @@ export async function getApiKey({ api_key, notification }) {
   });
 }
 
-export async function findOrCreatePrivacyAddress({ label }) {
+export async function getE2EEServiceKeys({ service }) {
+  return await sendRequest({
+    method: 'GET',
+    path: `/e2ee/keys/${service}`
+  });
+}
+
+export async function getE2EEKeys({ type }) {
+  const query = type ? `?type=${type}` : '';
+  return await sendRequest({
+    method: 'GET',
+    path: `/e2ee/keys${query}`
+  });
+}
+
+export async function addE2EEServiceKey({ service, data }) {
+  return await sendRequest({
+    method: 'POST',
+    path: `/e2ee/keys/${service}/new`,
+    data
+  });
+}
+
+export async function findOrCreatePrivacyAddress({ label = undefined, ct = undefined, srch = undefined }) {
   return await sendRequest({
     method: 'POST',
     path: '/email-relay/addresses/new',
     data: {
-      label,
+      ...(ct ? { ct, ...(srch && { srch }) } : { label }),
       unique: true
     },
     notification: {

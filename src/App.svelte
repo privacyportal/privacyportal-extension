@@ -1,18 +1,18 @@
 <script>
   import { onMount } from 'svelte';
   import browser from 'webextension-polyfill';
-  import { loadSession, session } from './lib/stores/account';
+  import { loadSession, session, cryptoTasks } from './lib/stores/account';
   import Header from './Header.svelte';
   import FlexContainer from './lib/components/common/FlexContainer.svelte';
   import { isDarkBrowserColorScheme } from './lib/stores/nav';
   import GridContainer from './lib/components/common/GridContainer.svelte';
   import AnnouncementIcon from './lib/components/materialIcons/AnnouncementIcon.svelte';
-  import { HOMEPAGE_URL } from './lib/modules/constants';
   import Button from './lib/components/common/Button.svelte';
   import CopyIcon from './lib/components/materialIcons/CopyIcon.svelte';
   import { writeValueToClipboard } from './lib/modules/util';
   import { findOrCreatePrivacyAddress } from './lib/modules/requests';
   import Footer from './Footer.svelte';
+  import { encryptAddressData } from './lib/modules/e2ee/mrelayUtils';
 
   const ALL_URLS_ORIGINS = '<all_urls>';
 
@@ -37,7 +37,9 @@
   async function handleGetPrivacyAddress() {
     try {
       creatingAddress = true;
-      const { value } = await findOrCreatePrivacyAddress({ label: `${protocol}//${hostname}` });
+      const address = { label: `${protocol}//${hostname}` };
+      const encryptedAddress = $session?.e2ee ? await encryptAddressData(address, $cryptoTasks) : undefined;
+      const { value } = await findOrCreatePrivacyAddress(encryptedAddress ?? address);
       await copyToClipboard(value);
     } finally {
       creatingAddress = false;
@@ -100,7 +102,7 @@
     <div class="gridline" />
 
     <FlexContainer column padding="0.5rem" gap="0.5rem">
-      {#if $session?.key}
+      {#if $session?.key && (!$session?.e2ee || $cryptoTasks)}
         <FlexContainer column bgColor="var(--new-layer-color)" padding="0.5rem" gap="0.5rem" rounded>
           {#if hostname}
             <FlexContainer column gap="0.2rem" align_items="center" justify_content="center" rounded>

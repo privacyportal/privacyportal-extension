@@ -1,8 +1,10 @@
 import browser from 'webextension-polyfill';
 import hmeLogo from './lib/modules/assets/hmeLogo';
+import { STORAGE_E2EE_MKEY } from './lib/modules/constants';
 import { attachShadowDomToFirstCompatibleAncestor, bindShadowElementPosition, bindVisibilityToInputFocus, fmtPixelDimension } from './lib/modules/domUtils';
 import { storageRead } from './lib/modules/storage';
 import { ANDROID_UA_STR, FIREFOX_UA_STR, uaIncludesAll } from './lib/modules/uaUtils';
+import { safeParseJSON } from './lib/modules/util';
 
 let detectedInput;
 
@@ -34,8 +36,10 @@ const delegate = (selector, opts) => (cb) => (e) => {
 const inputDelegate = delegate(INJECTABLE_EMAIL_INPUT_SCOPE);
 const shadowInputDelegate = delegate(INJECTABLE_EMAIL_INPUT_SCOPE, { shadow: true });
 
-async function isLoggedIn() {
-  return !!(await storageRead('api_key'));
+async function shouldInject() {
+  const { key, e2ee } = safeParseJSON(await storageRead('api_key'));
+  if (!e2ee) return !!key; // e2ee disabled, inject if logged in;
+  return !!(await storageRead(STORAGE_E2EE_MKEY)); // e2ee unlocked
 }
 
 function isElementDisplayed(element) {
@@ -52,10 +56,8 @@ async function handleHME(inputElement) {
 }
 
 async function injectDataList(inputElement) {
-  // only inject datalist if the user is logged in
-  const shouldInject = await isLoggedIn();
-
-  if (shouldInject) {
+  // only inject datalist if the user is fully logged in
+  if (await shouldInject()) {
     const datalistId = `pp-${window.crypto.randomUUID().substring(0, 8)}`;
 
     if (isFirefoxAndroid) {
@@ -282,14 +284,18 @@ browser.storage.local.onChanged.addListener((changes) => {
   const changedItems = Object.keys(changes);
 
   for (const item of changedItems) {
-    if (item === 'api_key') {
-      if (changes[item].newValue) {
-        // user logged in
-        detectAndInjectDataList();
-        refocusOnInput();
-      } else {
-        // user logged out
-        removeInjectedDataLists();
+    switch (item) {
+      case 'api_key':
+      case STORAGE_E2EE_MKEY: {
+        if (changes[item].newValue) {
+          // user logged in or E2EE unlocked. try to re-inject datalists
+          detectAndInjectDataList();
+          refocusOnInput();
+        } else {
+          // user logged out
+          removeInjectedDataLists();
+        }
+        break;
       }
     }
   }
