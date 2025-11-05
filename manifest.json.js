@@ -39,7 +39,8 @@ export default ({ env }) => ({
     {
       matches: ['https://*/*'],
       js: ['assets/content_script.js'],
-      run_at: 'document_idle'
+      run_at: 'document_idle',
+      all_frames: true
     }
   ],
   commands: {
